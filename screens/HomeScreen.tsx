@@ -1,70 +1,85 @@
 import React, { useState } from 'react';
-import { View, Text, Button, TextInput, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, Button, Dimensions, TextInput, Alert } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 
-const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+const { width } = Dimensions.get('window');
+
+const HomeScreen: React.FC = () => {
   const [options, setOptions] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState<string>('');
+  const rotation = useSharedValue(0); // Valor compartido para la rotación
 
   // Función para agregar una opción
   const addOption = () => {
     if (inputValue.trim()) {
       setOptions([...options, inputValue]);
       setInputValue('');
-    } else {
-      Alert.alert('Error', 'Por favor, escribe una opción válida.');
     }
   };
 
-  // Función para seleccionar una opción al azar
+  // Función para seleccionar una opción al azar con animación
   const chooseRandomOption = () => {
     if (options.length > 0) {
-      const randomIndex = Math.floor(Math.random() * options.length);
-      const selectedOption = options[randomIndex];
-      Alert.alert('Opción seleccionada', `La opción seleccionada es: ${selectedOption}`);
-      // Navegar a la pantalla de historial (opcional)
-      navigation.navigate('History', { decision: selectedOption });
+      // Gira la ruleta varias veces antes de detenerse
+      rotation.value = withTiming(rotation.value + 360 * 5, {
+        duration: 3000,
+        easing: Easing.out(Easing.ease),
+      });
+
+      // Selecciona una opción al azar después de la animación
+      setTimeout(() => {
+        const randomIndex = Math.floor(Math.random() * options.length);
+        Alert.alert('Opción seleccionada', `La opción seleccionada es: ${options[randomIndex]}`);
+        rotation.value = 0; // Reinicia la rotación
+      }, 3000);
     } else {
       Alert.alert('Error', 'No hay opciones para elegir. Agrega algunas primero.');
     }
   };
 
+  // Estilo animado para la ruleta
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ rotate: `${rotation.value}deg` }],
+    };
+  });
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <View style={styles.innerContainer}>
-        <Text style={styles.title}>WhatNow?</Text>
-        <Text style={styles.subtitle}>Agrega tus opciones:</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>WhatNow?</Text>
+      <Text style={styles.subtitle}>Agrega tus opciones:</Text>
 
-        {/* Input para agregar opciones */}
-        <TextInput
-          style={styles.input}
-          value={inputValue}
-          onChangeText={setInputValue}
-          placeholder="Escribe una opción"
-          placeholderTextColor="#999"
-        />
+      {/* Input para agregar opciones */}
+      <TextInput
+        style={styles.input}
+        value={inputValue}
+        onChangeText={setInputValue}
+        placeholder="Escribe una opción"
+        placeholderTextColor="#999"
+      />
 
-        {/* Botón para agregar opciones */}
-        <Button title="Agregar" onPress={addOption} />
+      {/* Botón para agregar opciones */}
+      <Button title="Agregar" onPress={addOption} />
 
-        {/* Lista de opciones */}
-        <FlatList
-          data={options}
-          renderItem={({ item }) => (
-            <View style={styles.optionItem}>
-              <Text style={styles.optionText}>{item}</Text>
-            </View>
-          )}
-          keyExtractor={(item, index) => index.toString()}
-          style={styles.list}
-        />
-
-        {/* Botón para seleccionar una opción al azar */}
-        <Button title="Decidir por mí" onPress={chooseRandomOption} />
+      {/* Ruleta de opciones */}
+      <View style={styles.ruletaContainer}>
+        <Animated.View style={[styles.ruleta, animatedStyle]}>
+          {options.map((option, index) => (
+            <Text key={index} style={styles.optionText}>
+              {option}
+            </Text>
+          ))}
+        </Animated.View>
       </View>
-    </KeyboardAvoidingView>
+
+      {/* Botón para seleccionar una opción al azar */}
+      <Button title="Decidir por mí" onPress={chooseRandomOption} />
+    </View>
   );
 };
 
@@ -72,11 +87,8 @@ const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  innerContainer: {
-    flex: 1,
     padding: 20,
+    backgroundColor: '#f5f5f5',
   },
   title: {
     fontSize: 24,
@@ -99,21 +111,26 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#fff',
   },
-  list: {
-    flex: 1,
-    marginTop: 10,
+  ruletaContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 20,
   },
-  optionItem: {
-    padding: 10,
-    marginVertical: 5,
+  ruleta: {
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: (width * 0.8) / 2,
     backgroundColor: '#fff',
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#ddd',
-    borderRadius: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   optionText: {
     fontSize: 16,
     color: '#333',
+    position: 'absolute',
+    transform: [{ rotate: '0deg' }], // Ajusta la rotación de cada opción
   },
 });
 
