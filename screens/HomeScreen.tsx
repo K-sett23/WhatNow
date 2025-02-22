@@ -6,18 +6,33 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
 const HomeScreen: React.FC = () => {
-  const [options, setOptions] = useState<string[]>([]);
+  const [options, setOptions] = useState<{ text: string; color: string }[]>([]);
   const [inputValue, setInputValue] = useState<string>('');
   const rotation = useSharedValue(0); // Valor compartido para la rotación
+
+  // Función para generar un color hexadecimal aleatorio
+  const getRandomColor = () => {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+  };
 
   // Función para agregar una opción
   const addOption = () => {
     if (inputValue.trim()) {
-      setOptions([...options, inputValue]);
+      const newOption = {
+        text: inputValue,
+        color: getRandomColor(), // Asignar un color único
+      };
+      setOptions([...options, newOption]);
       setInputValue('');
     }
   };
@@ -34,7 +49,7 @@ const HomeScreen: React.FC = () => {
       // Selecciona una opción al azar después de la animación
       setTimeout(() => {
         const randomIndex = Math.floor(Math.random() * options.length);
-        Alert.alert('Opción seleccionada', `La opción seleccionada es: ${options[randomIndex]}`);
+        Alert.alert('Opción seleccionada', `La opción seleccionada es: ${options[randomIndex].text}`);
         rotation.value = 0; // Reinicia la rotación
       }, 3000);
     } else {
@@ -48,6 +63,11 @@ const HomeScreen: React.FC = () => {
       transform: [{ rotate: `${rotation.value}deg` }],
     };
   });
+
+  // Colores para el degradado
+  const gradientColors = options.length > 0
+    ? options.map((option) => option.color) // Usar colores de las opciones
+    : ['#FF0000', '#00FF00']; // Colores predeterminados si no hay opciones
 
   return (
     <View style={styles.container}>
@@ -69,11 +89,18 @@ const HomeScreen: React.FC = () => {
       {/* Ruleta de opciones */}
       <View style={styles.ruletaContainer}>
         <Animated.View style={[styles.ruleta, animatedStyle]}>
-          {options.map((option, index) => (
-            <Text key={index} style={styles.optionText}>
-              {option}
-            </Text>
-          ))}
+          <LinearGradient
+            colors={gradientColors} // Usar colores de las opciones o colores predeterminados
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.gradient}
+          >
+            {options.map((option, index) => (
+              <Text key={index} style={[styles.optionText, { color: '#fff' }]}>
+                {option.text}
+              </Text>
+            ))}
+          </LinearGradient>
         </Animated.View>
       </View>
 
@@ -120,17 +147,17 @@ const styles = StyleSheet.create({
     width: width * 0.8,
     height: width * 0.8,
     borderRadius: (width * 0.8) / 2,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#ddd',
+    overflow: 'hidden', // Para que el degradado no se salga del círculo
+  },
+  gradient: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   optionText: {
     fontSize: 16,
-    color: '#333',
-    position: 'absolute',
-    transform: [{ rotate: '0deg' }], // Ajusta la rotación de cada opción
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 
