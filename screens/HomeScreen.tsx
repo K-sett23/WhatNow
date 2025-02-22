@@ -7,13 +7,16 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
 const HomeScreen: React.FC = () => {
   const [options, setOptions] = useState<{ text: string; color: string }[]>([]);
   const [inputValue, setInputValue] = useState<string>('');
+  const [decisions, setDecisions] = useState<{ text: string; color: string; date: string }[]>([]);
   const rotation = useSharedValue(0); // Valor compartido para la rotación
+  const navigation = useNavigation();
 
   // Función para generar un color hexadecimal aleatorio
   const getRandomColor = () => {
@@ -49,7 +52,14 @@ const HomeScreen: React.FC = () => {
       // Selecciona una opción al azar después de la animación
       setTimeout(() => {
         const randomIndex = Math.floor(Math.random() * options.length);
-        Alert.alert('Opción seleccionada', `La opción seleccionada es: ${options[randomIndex].text}`);
+        const selectedOption = options[randomIndex];
+        const decision = {
+          text: selectedOption.text,
+          color: selectedOption.color,
+          date: new Date().toLocaleString(), // Fecha y hora de la decisión
+        };
+        setDecisions([...decisions, decision]); // Guardar la decisión en el historial
+        Alert.alert('Opción seleccionada', `La opción seleccionada es: ${selectedOption.text}`);
         rotation.value = 0; // Reinicia la rotación
       }, 3000);
     } else {
@@ -106,6 +116,12 @@ const HomeScreen: React.FC = () => {
 
       {/* Botón para seleccionar una opción al azar */}
       <Button title="Decidir por mí" onPress={chooseRandomOption} />
+
+      {/* Botón para ver el historial */}
+      <Button
+        title="Ver Historial"
+        onPress={() => navigation.navigate('History', { decisions })}
+      />
     </View>
   );
 };

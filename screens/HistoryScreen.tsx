@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 
-const HistoryScreen: React.FC<{ route: any }> = ({ route }) => {
-  const [history, setHistory] = useState<string[]>([]);
+type Decision = {
+  text: string;
+  color: string;
+  date: string;
+};
 
-  // Obtener la decisión seleccionada desde la ruta (si existe)
-  useEffect(() => {
-    if (route.params?.decision) {
-      setHistory([...history, route.params.decision]);
-    }
-  }, [route.params?.decision]);
+const HistoryScreen: React.FC<{ route: any }> = ({ route }) => {
+  // Obtener las decisiones pasadas desde la ruta (si existen)
+  const decisions: Decision[] = route.params?.decisions || [];
 
   return (
     <View style={styles.container}>
@@ -17,10 +17,11 @@ const HistoryScreen: React.FC<{ route: any }> = ({ route }) => {
 
       {/* Lista de decisiones */}
       <FlatList
-        data={history}
+        data={decisions}
         renderItem={({ item }) => (
-          <View style={styles.item}>
-            <Text style={styles.decision}>{item}</Text>
+          <View style={[styles.decisionItem, { backgroundColor: item.color }]}>
+            <Text style={styles.decisionText}>{item.text}</Text>
+            <Text style={styles.decisionDate}>{item.date}</Text>
           </View>
         )}
         keyExtractor={(item, index) => index.toString()}
@@ -42,17 +43,20 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: '#333',
   },
-  item: {
-    padding: 10,
+  decisionItem: {
+    padding: 15,
     marginVertical: 5,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
+    borderRadius: 10,
   },
-  decision: {
+  decisionText: {
     fontSize: 16,
-    color: '#333',
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  decisionDate: {
+    fontSize: 12,
+    color: '#fff',
+    marginTop: 5,
   },
 });
 
