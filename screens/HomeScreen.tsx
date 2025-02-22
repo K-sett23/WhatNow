@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Button, TextInput, FlatList, StyleSheet, Alert } from 'react-native';
+import { View, Text, Button, TextInput, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 
 const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [options, setOptions] = useState<string[]>([]);
@@ -29,37 +29,42 @@ const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>WhatNow?</Text>
-      <Text style={styles.subtitle}>Agrega tus opciones:</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <View style={styles.innerContainer}>
+        <Text style={styles.title}>WhatNow?</Text>
+        <Text style={styles.subtitle}>Agrega tus opciones:</Text>
 
-      {/* Input para agregar opciones */}
-      <TextInput
-        style={styles.input}
-        value={inputValue}
-        onChangeText={setInputValue}
-        placeholder="Escribe una opción"
-        placeholderTextColor="#999"
-      />
+        {/* Input para agregar opciones */}
+        <TextInput
+          style={styles.input}
+          value={inputValue}
+          onChangeText={setInputValue}
+          placeholder="Escribe una opción"
+          placeholderTextColor="#999"
+        />
 
-      {/* Botón para agregar opciones */}
-      <Button title="Agregar" onPress={addOption} />
+        {/* Botón para agregar opciones */}
+        <Button title="Agregar" onPress={addOption} />
 
-      {/* Lista de opciones */}
-      <FlatList
-        data={options}
-        renderItem={({ item }) => (
-          <View style={styles.optionItem}>
-            <Text style={styles.optionText}>{item}</Text>
-          </View>
-        )}
-        keyExtractor={(item, index) => index.toString()}
-        style={styles.list}
-      />
+        {/* Lista de opciones */}
+        <FlatList
+          data={options}
+          renderItem={({ item }) => (
+            <View style={styles.optionItem}>
+              <Text style={styles.optionText}>{item}</Text>
+            </View>
+          )}
+          keyExtractor={(item, index) => index.toString()}
+          style={styles.list}
+        />
 
-      {/* Botón para seleccionar una opción al azar */}
-      <Button title="Decidir por mí" onPress={chooseRandomOption} />
-    </View>
+        {/* Botón para seleccionar una opción al azar */}
+        <Button title="Decidir por mí" onPress={chooseRandomOption} />
+      </View>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -67,8 +72,11 @@ const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: '#f5f5f5',
+  },
+  innerContainer: {
+    flex: 1,
+    padding: 20,
   },
   title: {
     fontSize: 24,
