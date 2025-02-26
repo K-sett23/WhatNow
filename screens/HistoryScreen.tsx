@@ -1,30 +1,61 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { firestore, auth } from '../firebaseConfig';
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore'; // Importa los métodos de Firestore
 
 type Decision = {
+  id: string;
   text: string;
-  color: string;
   date: string;
 };
 
-const HistoryScreen: React.FC<{ route: any }> = ({ route }) => {
-  // Obtener las decisiones pasadas desde la ruta (si existen)
-  const decisions: Decision[] = route.params?.decisions || [];
+const HistoryScreen: React.FC = () => {
+  const [decisions, setDecisions] = useState<Decision[]>([]);
+
+  useEffect(() => {
+    const fetchDecisions = async () => {
+      try {
+        // Crea una referencia a la colección 'decisions'
+        const decisionsRef = collection(firestore, 'decisions');
+        
+        // Crea una consulta para filtrar por userId y ordenar por fecha
+        const q = query(
+          decisionsRef,
+          where('userId', '==', auth.currentUser?.uid),
+          orderBy('date', 'desc')
+        );
+
+        // Ejecuta la consulta
+        const snapshot = await getDocs(q);
+
+        // Mapea los documentos a un array de decisiones
+        const decisionsData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          text: doc.data().text, // Asegúrate de que 'text' y 'date' existan en tus documentos
+          date: doc.data().date,
+        })) as Decision[];
+
+        setDecisions(decisionsData);
+      } catch (error) {
+        console.error('Error al recuperar las decisiones:', error);
+      }
+    };
+
+    fetchDecisions();
+  }, []);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Historial de Decisiones</Text>
-
-      {/* Lista de decisiones */}
       <FlatList
         data={decisions}
         renderItem={({ item }) => (
-          <View style={[styles.decisionItem, { backgroundColor: item.color }]}>
+          <View style={styles.decisionItem}>
             <Text style={styles.decisionText}>{item.text}</Text>
-            <Text style={styles.decisionDate}>{item.date}</Text>
+            <Text style={styles.decisionDate}>{new Date(item.date).toLocaleString()}</Text>
           </View>
         )}
-        keyExtractor={(item, index) => index.toString()}
+        keyExtractor={(item) => item.id}
       />
     </View>
   );
@@ -46,17 +77,16 @@ const styles = StyleSheet.create({
   decisionItem: {
     padding: 15,
     marginVertical: 5,
+    backgroundColor: '#fff',
     borderRadius: 10,
   },
   decisionText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
+    color: '#333',
   },
   decisionDate: {
     fontSize: 12,
-    color: '#fff',
-    marginTop: 5,
+    color: '#666',
   },
 });
 

@@ -5,8 +5,9 @@ import HomeScreen from '../screens/HomeScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import { RootStackParamList } from './types'; // Importa los tipos de rutas
 
-const Stack = createStackNavigator();
+const Stack = createStackNavigator<RootStackParamList>(); // Pasa los tipos como parámetro genérico
 
 const AppNavigator: React.FC = () => {
   return (

@@ -1,22 +1,45 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { auth } from '../firebaseConfig'; // Asegúrate de que auth sea una instancia de Firebase v9
+import { createUserWithEmailAndPassword } from 'firebase/auth'; // Importa el método desde firebase/auth
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack'; // Importa el tipo de navegación
+import { RootStackParamList } from '../navigation/types'; // Importa los tipos de rutas
 
-const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+type RegisterScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Register'>;
+
+const RegisterScreen: React.FC = () => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const navigation = useNavigation<RegisterScreenNavigationProp>(); // Especifica el tipo de navegación
 
-  const handleRegister = () => {
-    if (email && password && confirmPassword) {
-      if (password === confirmPassword) {
-        // Aquí iría la lógica para registrar al usuario (por ejemplo, con Firebase)
-        Alert.alert('Registro exitoso', `Bienvenido, ${email}`);
-        navigation.navigate('Home'); // Navegar a la pantalla principal después del registro
-      } else {
-        Alert.alert('Error', 'Las contraseñas no coinciden.');
-      }
-    } else {
+  const handleRegister = async () => {
+    if (!email || !password || !confirmPassword) {
       Alert.alert('Error', 'Por favor, completa todos los campos.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Las contraseñas no coinciden.');
+      return;
+    }
+
+    try {
+      // Usa createUserWithEmailAndPassword de Firebase v9
+      await createUserWithEmailAndPassword(auth, email, password);
+      Alert.alert('Registro exitoso', `Bienvenido, ${email}`);
+      navigation.navigate('Home'); // Navegar a la pantalla principal después del registro
+    } catch (error: any) {
+      let errorMessage = 'No se pudo registrar. Intenta de nuevo.';
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'El correo ya está en uso.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'El correo no es válido.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'La contraseña es demasiado débil.';
+      }
+      Alert.alert('Error', errorMessage);
     }
   };
 

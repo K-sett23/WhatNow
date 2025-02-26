@@ -1,90 +1,54 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Button, Dimensions, TextInput, Alert } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, Button, TextInput, FlatList, StyleSheet, Alert } from 'react-native';
+import { auth, firestore } from '../firebaseConfig';
+import { collection, addDoc } from 'firebase/firestore'; // Importa los métodos de Firestore
 import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack'; // Importa el tipo de navegación
+import { RootStackParamList } from '../navigation/types'; // Importa los tipos de rutas
 
-const { width } = Dimensions.get('window');
+type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
 const HomeScreen: React.FC = () => {
-  const [options, setOptions] = useState<{ text: string; color: string }[]>([]);
+  const [options, setOptions] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState<string>('');
-  const [decisions, setDecisions] = useState<{ text: string; color: string; date: string }[]>([]);
-  const rotation = useSharedValue(0); // Valor compartido para la rotación
-  const navigation = useNavigation();
+  const navigation = useNavigation<HomeScreenNavigationProp>(); // Especifica el tipo de navegación
 
-  // Función para generar un color hexadecimal aleatorio
-  const getRandomColor = () => {
-    const letters = '0123456789ABCDEF';
-    let color = '#';
-    for (let i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-  };
-
-  // Función para agregar una opción
   const addOption = () => {
     if (inputValue.trim()) {
-      const newOption = {
-        text: inputValue,
-        color: getRandomColor(), // Asignar un color único
-      };
-      setOptions([...options, newOption]);
+      setOptions([...options, inputValue]);
       setInputValue('');
     }
   };
 
-  // Función para seleccionar una opción al azar con animación
-  const chooseRandomOption = () => {
+  const chooseRandomOption = async () => {
     if (options.length > 0) {
-      // Gira la ruleta varias veces antes de detenerse
-      rotation.value = withTiming(rotation.value + 360 * 5, {
-        duration: 3000,
-        easing: Easing.out(Easing.ease),
-      });
-
-      // Selecciona una opción al azar después de la animación
-      setTimeout(() => {
-        const randomIndex = Math.floor(Math.random() * options.length);
-        const selectedOption = options[randomIndex];
-        const decision = {
-          text: selectedOption.text,
-          color: selectedOption.color,
-          date: new Date().toLocaleString(), // Fecha y hora de la decisión
-        };
-        setDecisions([...decisions, decision]); // Guardar la decisión en el historial
-        Alert.alert('Opción seleccionada', `La opción seleccionada es: ${selectedOption.text}`);
-        rotation.value = 0; // Reinicia la rotación
-      }, 3000);
+      const randomIndex = Math.floor(Math.random() * options.length);
+      const selectedOption = options[randomIndex];
+  
+      if (!auth.currentUser) {
+        Alert.alert('Error', 'Debes iniciar sesión para guardar decisiones.');
+        return;
+      }
+  
+      try {
+        await addDoc(collection(firestore, 'decisions'), {
+          text: selectedOption,
+          userId: auth.currentUser.uid,
+          date: new Date().toISOString(),
+        });
+        Alert.alert('Opción seleccionada', `La opción seleccionada es: ${selectedOption}`);
+      } catch (error) {
+        console.error('Error al guardar la decisión:', error);
+        Alert.alert('Error', 'No se pudo guardar la decisión. Intenta de nuevo.');
+      }
     } else {
       Alert.alert('Error', 'No hay opciones para elegir. Agrega algunas primero.');
     }
   };
-
-  // Estilo animado para la ruleta
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ rotate: `${rotation.value}deg` }],
-    };
-  });
-
-  // Colores para el degradado
-  const gradientColors = options.length > 0
-    ? options.map((option) => option.color) // Usar colores de las opciones
-    : ['#FF0000', '#00FF00']; // Colores predeterminados si no hay opciones
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>WhatNow?</Text>
       <Text style={styles.subtitle}>Agrega tus opciones:</Text>
-
-      {/* Input para agregar opciones */}
       <TextInput
         style={styles.input}
         value={inputValue}
@@ -92,36 +56,14 @@ const HomeScreen: React.FC = () => {
         placeholder="Escribe una opción"
         placeholderTextColor="#999"
       />
-
-      {/* Botón para agregar opciones */}
       <Button title="Agregar" onPress={addOption} />
-
-      {/* Ruleta de opciones */}
-      <View style={styles.ruletaContainer}>
-        <Animated.View style={[styles.ruleta, animatedStyle]}>
-          <LinearGradient
-            colors={gradientColors} // Usar colores de las opciones o colores predeterminados
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.gradient}
-          >
-            {options.map((option, index) => (
-              <Text key={index} style={[styles.optionText, { color: '#fff' }]}>
-                {option.text}
-              </Text>
-            ))}
-          </LinearGradient>
-        </Animated.View>
-      </View>
-
-      {/* Botón para seleccionar una opción al azar */}
-      <Button title="Decidir por mí" onPress={chooseRandomOption} />
-
-      {/* Botón para ver el historial */}
-      <Button
-        title="Ver Historial"
-        onPress={() => navigation.navigate('History', { decisions })}
+      <FlatList
+        data={options}
+        renderItem={({ item }) => <Text style={styles.optionText}>{item}</Text>}
+        keyExtractor={(item, index) => index.toString()}
       />
+      <Button title="Decidir por mí" onPress={chooseRandomOption} />
+      <Button title="Ver Historial" onPress={() => navigation.navigate('History')} />
     </View>
   );
 };
@@ -154,26 +96,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#fff',
   },
-  ruletaContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 20,
-  },
-  ruleta: {
-    width: width * 0.8,
-    height: width * 0.8,
-    borderRadius: (width * 0.8) / 2,
-    overflow: 'hidden', // Para que el degradado no se salga del círculo
-  },
-  gradient: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   optionText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    color: '#333',
   },
 });
 
